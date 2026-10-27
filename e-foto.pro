@@ -127,7 +127,8 @@ HEADERS += c/control/DEMManager.h \
            qt/infrastructure/EPolygon.h \
            qt/infrastructure/ETableWidget.h \
            qt/infrastructure/FlightDirectionForm.h \
-           qt/infrastructure/LoadingScreen.h \
+           qt/infrastructure/Language.h \
+    qt/infrastructure/LoadingScreen.h \
            qt/infrastructure/ScienceSpinBox.h \
            qt/infrastructure/SigmaForm.h \
            qt/infrastructure/WindowsSelectPage.h \
@@ -140,6 +141,9 @@ HEADERS += c/control/DEMManager.h \
            qt/interface/ReportUserInterface_Qt.h \
            qt/interface/SPUserInterface_Qt.h \
            qt/interface/SRUserInterface_Qt.h
+
+TRANSLATIONS += translations/e-foto_zh_CN.ts
+CONFIG += lrelease embed_translations
 
 FORMS += qt/formDisplay/FeatEditor.ui \
          qt/formDisplay/FeatsEditor.ui \
@@ -273,7 +277,8 @@ SOURCES += c/control/DEMManager.cpp \
            qt/infrastructure/EPolygon.cpp \
            qt/infrastructure/ETableWidget.cpp \
            qt/infrastructure/FlightDirectionForm.cpp \
-           qt/infrastructure/LoadingScreen.cpp \
+           qt/infrastructure/Language.cpp \
+    qt/infrastructure/LoadingScreen.cpp \
            qt/infrastructure/ScienceSpinBox.cpp \
            qt/infrastructure/SigmaForm.cpp \
            qt/infrastructure/WindowsSelectPage.cpp \

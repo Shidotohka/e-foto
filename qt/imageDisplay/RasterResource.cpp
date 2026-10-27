@@ -2,6 +2,7 @@
 #include <gdal_priv.h>
 #include <gdalwarper.h>
 
+#include <QCoreApplication>
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QTemporaryFile>
@@ -40,20 +41,23 @@ RasterResource::~RasterResource() {
 }
 
 void RasterResource::emitLoadError(const QString& filepath) {
-  QString message = "Error: The image loading process failed.";
+  const auto translate = [](const char* text) {
+    return QCoreApplication::translate("RasterResource", text);
+  };
+  QString message = translate("Error: The image loading process failed.");
   if (!filepath.isEmpty()) {
     if (!PathUtils::exists(filepath.toUtf8().data())) {
-      message += " File not found!";
+      message += " " + translate("File not found!");
     } else {
-      message += " Unable to read this file!";
+      message += " " + translate("Unable to read this file!");
     }
     // TODO: Alterar essa implementação para garantir que use proj->getSavedIn()
     QFileInfo fileInfo(filepath);
     QString absolutePath = fileInfo.absoluteFilePath();
 
-    message += "\nFile: " + absolutePath;
+    message += "\n" + translate("File: %1").arg(absolutePath);
   }
-  QMessageBox::critical(nullptr, "Load Error", message);
+  QMessageBox::critical(nullptr, translate("Load Error"), message);
 }
 void RasterResource::useSmoothIn(bool useSmooth) { _useSmoothIn = useSmooth; }
 

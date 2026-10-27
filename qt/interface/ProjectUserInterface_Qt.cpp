@@ -21,6 +21,9 @@
 #include <QInputDialog>
 #include <QRegularExpression>
 #include <QScrollArea>
+#include <QActionGroup>
+#include <QEvent>
+#include <QMenu>
 #include <QSettings>
 #include <QShortcut>
 #include <filesystem>
@@ -31,6 +34,7 @@
 
 #include "AboutForm.h"
 #include "ETreeModel.h"
+#include "Language.h"
 #include "LoadingScreen.h"
 #include "PathUtils.h"
 #include "ProjectManager.h"
@@ -47,6 +51,7 @@ ProjectUserInterface_Qt::ProjectUserInterface_Qt(ProjectManager *manager,
                                                  Qt::WindowFlags fl)
     : QMainWindow(parent, fl) {
   setupUi(this);
+  setupLanguageMenu();
 
   // Ler versão
   QString ver = BUILD_DATE;
@@ -388,7 +393,7 @@ void ProjectUserInterface_Qt::loadFile(std::string filenameAtStart) {
   QString input_filename;
 
   if (filenameAtStart.empty()) {
-    input_filename = QFileDialog::getOpenFileName(this, "Open File", ".", "*.epp");
+    input_filename = QFileDialog::getOpenFileName(this, tr("Open File"), ".", "*.epp");
   } else {
     input_filename = QString::fromStdString(filenameAtStart);
   }
@@ -666,7 +671,7 @@ void ProjectUserInterface_Qt::executeIO() {
   {
     QMessageBox msgBox;
     msgBox.setText(
-        "Before proceeding, it is necessary to register the sensor data!");
+        tr("Before proceeding, it is necessary to register the sensor data!"));
     msgBox.exec();
     return;
   }
@@ -779,7 +784,7 @@ void ProjectUserInterface_Qt::processTreeClick(QModelIndex index) {
       QMessageBox::StandardButton reply;
       reply = QMessageBox::question(
           this, tr(" Warning: leaving form in edit mode"),
-          "Do you want to keep all changes?",
+          tr("Do you want to keep all changes?"),
           QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
       if (reply == QMessageBox::Yes) {
         controlButtons.saveButton->click();
@@ -793,7 +798,7 @@ void ProjectUserInterface_Qt::processTreeClick(QModelIndex index) {
       QMessageBox::StandardButton reply;
       reply = QMessageBox::question(
           this, tr(" Warning: leaving form in edit mode"),
-          "Registration data is not complete and will be lost. Continue?",
+          tr("Registration data is not complete and will be lost. Continue?"),
           QMessageBox::Yes | QMessageBox::Cancel);
       if (reply == QMessageBox::Yes) {
         controlButtons.cancelButton->click();
@@ -863,17 +868,66 @@ void ProjectUserInterface_Qt::exportSPFile() {
           manager->makeSPFile(filename.toUtf8().data(), image1, image2);
       if (result == false) {
         QMessageBox msgBox;
-        msgBox.setText("Error: invalid input parameters.");
+        msgBox.setText(tr("Error: invalid input parameters."));
         msgBox.exec();
       }
     }
   }
 }
 
-// Metodo que sera reescrito depois que trabalharmos esta interface grafica com
-// o QLinguist
-void ProjectUserInterface_Qt::languageChange() {
-  // retranslateUi(this);
+void ProjectUserInterface_Qt::languageChange() { retranslateUi(this); }
+
+void ProjectUserInterface_Qt::setupLanguageMenu() {
+  languageMenu = new QMenu(tr("Language"), this);
+  QActionGroup* group = new QActionGroup(this);
+  group->setExclusive(true);
+
+  QAction* systemAction = languageMenu->addAction(tr("System default"));
+  systemLanguageAction = systemAction;
+  QAction* englishAction = languageMenu->addAction(QStringLiteral("English"));
+  QAction* chineseAction = languageMenu->addAction(QStringLiteral("简体中文"));
+
+  systemAction->setData(QStringLiteral("system"));
+  englishAction->setData(QStringLiteral("en"));
+  chineseAction->setData(QStringLiteral("zh_CN"));
+
+  const QString current = Language::current();
+  for (QAction* action : {systemAction, englishAction, chineseAction}) {
+    action->setCheckable(true);
+    action->setChecked(action->data().toString() == current ||
+                       (current == "system" && action == systemAction));
+    group->addAction(action);
+  }
+
+  connect(group, &QActionGroup::triggered, this, [](QAction* action) {
+    Language::setCurrent(action->data().toString());
+  });
+
+  menubar->addMenu(languageMenu);
+}
+
+void ProjectUserInterface_Qt::changeEvent(QEvent* event) {
+  if (event->type() == QEvent::LanguageChange) {
+    retranslateUi(this);
+    if (languageMenu) languageMenu->setTitle(tr("Language"));
+    if (systemLanguageAction) systemLanguageAction->setText(tr("System default"));
+    headerForm.retranslateUi(&headerForm);
+    terrainForm.retranslateUi(&terrainForm);
+    sensorForm.retranslateUi(&sensorForm);
+    flightForm.retranslateUi(&flightForm);
+    imagesForm.retranslateUi(&imagesForm);
+    imageForm.retranslateUi(&imageForm);
+    pointsForm.retranslateUi(&pointsForm);
+    pointForm.retranslateUi(&pointForm);
+    refreshMenu();
+    if (!headerForm.lineEditName->text().isEmpty()) {
+      setWindowTitle(headerForm.lineEditName->text() +
+                     tr(" - efoto[Project Manager]"));
+    } else {
+      setWindowTitle(tr("efoto[Project Manager]"));
+    }
+  }
+  QMainWindow::changeEvent(event);
 }
 
 void ProjectUserInterface_Qt::newTree() {
@@ -1214,22 +1268,22 @@ void ProjectUserInterface_Qt::viewImage(int id) {
   if (node2.getContent() != "") {
     imageForm.groupBox->setVisible(true);
     imageForm.a0Label->setText(
-        "a0: " +
+        tr("a0: ") +
         QString::number(node2.elementByTagName("a0").toDouble(), 'f', 4));
     imageForm.a1Label->setText(
-        "a1: " +
+        tr("a1: ") +
         QString::number(node2.elementByTagName("a1").toDouble(), 'f', 4));
     imageForm.a2Label->setText(
-        "a2: " +
+        tr("a2: ") +
         QString::number(node2.elementByTagName("a2").toDouble(), 'f', 4));
     imageForm.b0Label->setText(
-        "b0: " +
+        tr("b0: ") +
         QString::number(node2.elementByTagName("b0").toDouble(), 'f', 4));
     imageForm.b1Label->setText(
-        "b1: " +
+        tr("b1: ") +
         QString::number(node2.elementByTagName("b1").toDouble(), 'f', 4));
     imageForm.b2Label->setText(
-        "b2: " +
+        tr("b2: ") +
         QString::number(node2.elementByTagName("b2").toDouble(), 'f', 4));
   } else {
     imageForm.groupBox->setVisible(false);
@@ -1241,25 +1295,25 @@ void ProjectUserInterface_Qt::viewImage(int id) {
     imageForm.groupBox_2->setVisible(true);
 
     if (node3.attribute("type") == "spatialResection")
-      imageForm.groupBox_2->setTitle("EO Parameters (Spatial Resection)");
+      imageForm.groupBox_2->setTitle(tr("EO Parameters (Spatial Resection)"));
     else if (node3.attribute("type") == "user")
       imageForm.groupBox_2->setTitle(
-          "EO Parameters (3D Direct Georeferencing)");
+          tr("EO Parameters (3D Direct Georeferencing)"));
     else
-      imageForm.groupBox_2->setTitle("EO Parameters (Phototriangulation)");
+      imageForm.groupBox_2->setTitle(tr("EO Parameters (Phototriangulation)"));
 
     imageForm.x0Label->setText(
-        "X0: " +
+        tr("X0: ") +
         QString::number(node3.elementByTagName("X0").toDouble(), 'f', 4) +
-        " m");
+        tr(" m"));
     imageForm.y0Label->setText(
-        "Y0: " +
+        tr("Y0: ") +
         QString::number(node3.elementByTagName("Y0").toDouble(), 'f', 4) +
-        " m");
+        tr(" m"));
     imageForm.z0Label->setText(
-        "Z0: " +
+        tr("Z0: ") +
         QString::number(node3.elementByTagName("Z0").toDouble(), 'f', 4) +
-        " m");
+        tr(" m"));
     imageForm.omegaLabel->setText(
         QString::fromUtf8(" ω: ") +
         QString::number(node3.elementByTagName("omega").toDouble() * 180 / M_PI,
@@ -1672,7 +1726,7 @@ bool ProjectUserInterface_Qt::confirmToClose() {
       QMessageBox::StandardButton reply;
       reply = QMessageBox::question(
           this, tr(" Warning: leaving form in edit mode"),
-          "Do you want to keep all changes?",
+          tr("Do you want to keep all changes?"),
           QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
       if (reply == QMessageBox::Yes) {
         controlButtons.saveButton->click();
@@ -1685,7 +1739,7 @@ bool ProjectUserInterface_Qt::confirmToClose() {
       QMessageBox::StandardButton reply;
       reply = QMessageBox::question(
           this, tr(" Warning: leaving form in edit mode"),
-          "Registration data is not complete and will be lost. Continue?",
+          tr("Registration data is not complete and will be lost. Continue?"),
           QMessageBox::Yes | QMessageBox::Cancel);
       if (reply == QMessageBox::Yes) {
         controlButtons.cancelButton->click();
@@ -2345,9 +2399,9 @@ void ProjectUserInterface_Qt::importImagesBatch() {
   loading.setMinimumSize(300, 30);
 
   QMessageBox msgBox;
-  msgBox.setText("Loading images");
+  msgBox.setText(tr("Loading images"));
   msgBox.setInformativeText(
-      "All images has the same dimensions? (Yes to fast import)");
+      tr("All images has the same dimensions? (Yes to fast import)"));
   msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
   msgBox.setDefaultButton(QMessageBox::Yes);
 

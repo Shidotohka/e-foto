@@ -19,6 +19,9 @@
 
 #include <QStackedWidget>
 
+class QAction;
+class QMenu;
+
 #include "CommonDef.h"
 #include "ControlButtons.h"
 #include "FlightForm.h"
@@ -77,6 +80,17 @@ class ProjectUserInterface_Qt : public QMainWindow,
   virtual void validatingPoint();
   virtual bool confirmToClose();
   virtual void refreshMenu();
+
+ protected:
+  // Re-applies the translations to the form when a new translator is
+  // installed at runtime.
+  void changeEvent(QEvent* event) override;
+
+ private:
+  void setupLanguageMenu();
+
+  QMenu* languageMenu = nullptr;
+  QAction* systemLanguageAction = nullptr;
 
  public:
   // Other Methods

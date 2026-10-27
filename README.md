@@ -73,6 +73,29 @@ ninja pathutils_test project_path_test
 ctest --output-on-failure
 ```
 
+## Translations
+
+The interface is translated with the Qt Linguist tool chain. User visible strings
+are wrapped in `tr()` (`QCoreApplication::translate("efoto-core", ...)` for the
+messages produced by the `c/` control layer) and the translations live in
+`translations/*.ts`.
+
+```bash
+# refresh the .ts from the sources (also the CMake target `update-translations`)
+lupdate -recursive -locations none c qt -ts translations/e-foto_zh_CN.ts
+
+# edit translations/e-foto_zh_CN.ts with Qt Linguist, then compile it; the
+# CMake build does this automatically into build/translations/
+lrelease translations/e-foto_zh_CN.ts -qm build/translations/e-foto_zh_CN.qm
+```
+
+The `.qm` file is looked up next to the executable (`translations/`), in the Qt
+translations directory, or in the `:/i18n` resources. At runtime the language can
+be changed from the *Language* menu of the project manager; the choice is stored
+with `QSettings`, and `system` follows the operating system locale. To add a new
+language, copy the `.ts`, change its `language` attribute, translate it and add
+the file to `TRANSLATIONS` in `e-foto.pro` and to the CMake translation block.
+
 ## Contribution Guidelines
 * Fork this repository
 * Clone your forked repository

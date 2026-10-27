@@ -7,6 +7,7 @@
 #include <QGuiApplication>
 #include <QPalette>
 #include <QStyleHints>
+#include "Language.h"
 #include "LoadingScreen.h"
 #include "EFotoManager.h"
 
@@ -27,6 +28,9 @@ int main(int argc, char **argv)
 {
   QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Round);
   QApplication efoto(argc, argv);
+
+  // Install the interface translation (stored preference or system locale).
+  br::uerj::eng::efoto::Language::init();
 
   efoto.setStyle(QStyleFactory::create("Fusion"));
 

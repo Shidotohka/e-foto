@@ -294,6 +294,7 @@ qt_add_executable(e-foto WIN32 MACOSX_BUNDLE
     qt/infrastructure/ETableWidget.cpp qt/infrastructure/ETableWidget.h
     qt/infrastructure/EfotoDoubleSpinBox.cpp qt/infrastructure/EfotoDoubleSpinBox.h
     qt/infrastructure/FlightDirectionForm.cpp qt/infrastructure/FlightDirectionForm.h qt/infrastructure/FlightDirectionForm.ui
+    qt/infrastructure/Language.cpp qt/infrastructure/Language.h
     qt/infrastructure/LoadingScreen.cpp qt/infrastructure/LoadingScreen.h qt/infrastructure/LoadingScreen.ui
     qt/infrastructure/ScienceSpinBox.cpp qt/infrastructure/ScienceSpinBox.h
     qt/infrastructure/SigmaForm.cpp qt/infrastructure/SigmaForm.h
@@ -591,6 +592,51 @@ if(EFOTO_BUILD_TESTS)
         c/infrastructure/PathUtils.cpp c/infrastructure/EDom.cpp)
     target_include_directories(project_path_test PRIVATE c/infrastructure)
     add_test(NAME project_path COMMAND project_path_test)
+endif()
+
+# Translations ---------------------------------------------------------------
+# The .ts files are edited with Qt Linguist (or any text editor) and compiled
+# into .qm files that are loaded at runtime by qt/infrastructure/Language.cpp.
+# lupdate is not part of every Qt installation, so both tools are looked up by
+# name and the build simply skips the step when lrelease is missing.
+set(EFOTO_TS_FILES "${CMAKE_CURRENT_SOURCE_DIR}/translations/e-foto_zh_CN.ts")
+
+get_filename_component(_efoto_qt_bin_dir "${Qt6_DIR}/../../../bin" ABSOLUTE)
+find_program(EFOTO_LRELEASE_EXECUTABLE
+    NAMES lrelease lrelease-qt6 lrelease-qt5
+    HINTS "${_efoto_qt_bin_dir}")
+find_program(EFOTO_LUPDATE_EXECUTABLE
+    NAMES lupdate lupdate-qt6 lupdate-qt5
+    HINTS "${_efoto_qt_bin_dir}")
+
+if(EFOTO_LRELEASE_EXECUTABLE AND EXISTS "${EFOTO_TS_FILES}")
+    set(EFOTO_QM_DIR "${CMAKE_CURRENT_BINARY_DIR}/translations")
+    set(EFOTO_QM_FILE "${EFOTO_QM_DIR}/e-foto_zh_CN.qm")
+    add_custom_command(
+        OUTPUT "${EFOTO_QM_FILE}"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${EFOTO_QM_DIR}"
+        COMMAND "${EFOTO_LRELEASE_EXECUTABLE}" -silent "${EFOTO_TS_FILES}" -qm "${EFOTO_QM_FILE}"
+        DEPENDS "${EFOTO_TS_FILES}"
+        COMMENT "lrelease: e-foto_zh_CN.ts"
+        VERBATIM)
+    add_custom_target(e-foto_translations ALL DEPENDS "${EFOTO_QM_FILE}")
+    add_dependencies(e-foto e-foto_translations)
+    add_custom_command(TARGET e-foto POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:e-foto>/translations"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${EFOTO_QM_FILE}"
+                "$<TARGET_FILE_DIR:e-foto>/translations/e-foto_zh_CN.qm"
+        VERBATIM)
+    install(FILES "${EFOTO_QM_FILE}" DESTINATION "${CMAKE_INSTALL_BINDIR}/translations")
+endif()
+
+if(EFOTO_LUPDATE_EXECUTABLE)
+    add_custom_target(update-translations
+        COMMAND "${EFOTO_LUPDATE_EXECUTABLE}" -recursive -locations none
+                "${CMAKE_CURRENT_SOURCE_DIR}/c" "${CMAKE_CURRENT_SOURCE_DIR}/qt"
+                -ts "${EFOTO_TS_FILES}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "lupdate: refreshing ${EFOTO_TS_FILES}"
+        VERBATIM)
 endif()
 
 install(TARGETS e-foto

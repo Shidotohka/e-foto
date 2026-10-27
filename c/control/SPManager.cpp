@@ -20,6 +20,8 @@ SPManager.cpp
 **************************************************************************/
 
 #include "SPManager.h"
+
+#include <QCoreApplication>
 #include "EFotoManager.h"
 #include "SPUserInterface_Qt.h"
 #include "ProjectiveRay.h"
@@ -101,7 +103,7 @@ bool SPManager::exec()
             if (listAllImages.size() < 2)
             {
                 SPUserInterface_Qt *spui = (SPUserInterface_Qt *)myInterface;
-                spui->showErrorMessage("There are no enough images to run this application");
+                spui->showErrorMessage(QCoreApplication::translate("efoto-core", "There are no enough images to run this application"));
                 returnProject();
             }
 
@@ -111,7 +113,7 @@ bool SPManager::exec()
             if (!getPairs())
             {
                 SPUserInterface_Qt *spui = (SPUserInterface_Qt *)myInterface;
-                spui->showErrorMessage("Could not find any pair. Please, check your Exterior Orientation.");
+                spui->showErrorMessage(QCoreApplication::translate("efoto-core", "Could not find any pair. Please, check your Exterior Orientation."));
                 returnProject();
                 //return status;
             }

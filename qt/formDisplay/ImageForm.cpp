@@ -82,12 +82,12 @@ void ImageForm::fillvalues(std::string values) {
   widthLine->setText(
       (QString::fromUtf8(
            ede.elementByTagAtt("width", "uom", "#px").toString().c_str()) +
-       " px"));
+       tr(" px")));
 
   heightLine->setText(
       (QString::fromUtf8(
            ede.elementByTagAtt("height", "uom", "#px").toString().c_str()) +
-       " px"));
+       tr(" px")));
 
   const std::string storedName = PathUtils::xmlUnescape(
       PathUtils::trim(ede.elementByTagName("fileName").toString()));
@@ -122,9 +122,9 @@ void ImageForm::fillvalues(std::string values) {
     eDoubleSpinBox_2->setValue(0);
     nDoubleSpinBox_2->setValue(0);
     hDoubleSpinBox_2->setValue(0);
-    eDoubleSpinBox_2->setSuffix(" m");
-    nDoubleSpinBox_2->setSuffix(" m");
-    hDoubleSpinBox_2->setSuffix(" m");
+    eDoubleSpinBox_2->setSuffix(tr(" m"));
+    nDoubleSpinBox_2->setSuffix(tr(" m"));
+    hDoubleSpinBox_2->setSuffix(tr(" m"));
     gnssSigmaController->fillValues("Not Available");
     activeGNSS = false;
   } else {
@@ -283,7 +283,7 @@ void ImageForm::setReadOnly(bool state) {
 }
 
 QString ImageForm::loadImageFile() {
-  QString fileImage = QFileDialog::getOpenFileName(this, "Open File", lastPath,
+  QString fileImage = QFileDialog::getOpenFileName(this, tr("Open File"), lastPath,
                                                    "*.tif *.png *.bmp *.jpg");
 
   if (!fileImage.isEmpty()) {
@@ -316,13 +316,13 @@ QString ImageForm::loadImageFile() {
     // Handle image loading failure
     if (!success) {
       QMessageBox msgBox;
-      msgBox.setText("Error: The image loading process.");
+      msgBox.setText(tr("Error: The image loading process."));
       msgBox.exec();
     }
 
     // Update dimension lines
-    heightLine->setText(QString::number(h) + " px");
-    widthLine->setText(QString::number(w) + " px");
+    heightLine->setText(QString::number(h) + tr(" px"));
+    widthLine->setText(QString::number(w) + tr(" px"));
 
     return fileImage;
   }
@@ -364,7 +364,7 @@ bool ImageForm::isForm(std::string formName) {
 
 void ImageForm::cleanForm() {
   imageIDLine->clear();
-  resolutionSpin->setSpecialValueText("N/A");
+  resolutionSpin->setSpecialValueText(tr("N/A"));
   flightIdComboBox->setCurrentIndex(0);
   // ground coordinates
   eDoubleSpinBox_2->clear();

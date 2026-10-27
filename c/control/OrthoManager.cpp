@@ -20,6 +20,8 @@ OrthoManager.cpp
 
 #include "OrthoManager.h"
 
+#include <QCoreApplication>
+
 #include <sstream>
 
 #include "CommonDef.h"
@@ -95,7 +97,7 @@ bool OrthoManager::exec() {
 
   if (listAllImages.size() < 1) {
     OrthoUserInterface_Qt *oui = (OrthoUserInterface_Qt *)myInterface;
-    oui->showErrorMessage("There is no image to run this application");
+    oui->showErrorMessage(QCoreApplication::translate("efoto-core", "There is no image to run this application"));
     returnProject();
   }
 
@@ -107,8 +109,9 @@ void OrthoManager::addImagesToForm() {
 
   for (unsigned i = 1; i <= listAllImages.size(); i++)
     oui->comboBox->addItem(
-        "Image " +
-        QString::fromStdString(listAllImages.at(i - 1)->getImageId()));
+        QCoreApplication::translate("efoto-core", "Image %1")
+            .arg(QString::fromStdString(
+                listAllImages.at(i - 1)->getImageId())));
 }
 
 int OrthoManager::loadDemGrid(char *filename, int fileType) {

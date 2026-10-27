@@ -20,6 +20,8 @@ DEMManager.cpp
 
 #include "DEMManager.h"
 
+#include <QCoreApplication>
+
 #include <sstream>
 
 #include "DEMUserInterface_Qt.h"
@@ -249,17 +251,18 @@ void DEMManager::addPairsToInterface() {
   // Add pairs to the interface
   int left_id, right_id;
   std::string str_left, str_right;
-  std::stringstream txt;
   DEMUserInterface_Qt *dui = (DEMUserInterface_Qt *)myInterface;
   for (unsigned i = 0; i < listPairs.size(); i++) {
     getImagesId(i, left_id, right_id);
     str_left = listAllImages.at(left_id - 1)->getImageId();
     str_right = listAllImages.at(right_id - 1)->getImageId();
-    txt.str("");  // Clear stream
-    txt << "Images " << str_left << " and " << str_right;
-    dui->addImagePair((char *)txt.str().c_str());
+    const QString pairText =
+        QCoreApplication::translate("efoto-core", "Images %1 and %2")
+            .arg(QString::fromStdString(str_left),
+                 QString::fromStdString(str_right));
+    dui->addImagePair(pairText.toUtf8().data());
   }
-  dui->setStatus((char *)"None");
+  dui->setStatus(QCoreApplication::translate("efoto-core", "None"));
 }
 
 // Internal function. Pos from 0 - N-1.
@@ -463,7 +466,7 @@ int DEMManager::loadDemFeature(char *filename) {
   DEMUserInterface_Qt *dui = (DEMUserInterface_Qt *)myInterface;
 
   if (!dfFlag) {
-    dui->showErrorMessage("Bad file type !");
+    dui->showErrorMessage(QCoreApplication::translate("efoto-core", "Bad file type !"));
     return 0;
   }
 
@@ -476,7 +479,7 @@ int DEMManager::loadDemFeature(char *filename) {
   allList.XYZboundingBox(Xi, Yi, Xf, Yf, Zi, Zf);
   updateBoundingBox(Xi, Yi, Xf, Yf);
   ptLineList.XYZboundingBox(Xi, Yi, Xf, Yf, Zi, Zf);
-  dui->setStatus((char *)"Done");
+  dui->setStatus(QCoreApplication::translate("efoto-core", "Done"));
   dui->progressBar->setValue(0);
   dui->setManualExtInfo(ptLineList.size(), Zi, Zf);
   dui->setBoundingBox(bb_Xi, bb_Yi, bb_Xf, bb_Yf);
@@ -497,7 +500,7 @@ void DEMManager::interpolateGrid(int method, int garea, double Xi, double Yi,
   cancel_flag = false;
 
   DEMUserInterface_Qt *dui = (DEMUserInterface_Qt *)myInterface;
-  dui->setStatus((char *)"Interpolating grid ...");
+  dui->setStatus(QCoreApplication::translate("efoto-core", "Interpolating grid ..."));
 
   dui->disableOptions();
   dui->setAllowClose(false);
@@ -555,7 +558,7 @@ void DEMManager::interpolateGrid(int method, int garea, double Xi, double Yi,
   // Update info
   double min, max;
   int w = grid->getWidth(), h = grid->getHeight();
-  dui->setStatus((char *)"Done");
+  dui->setStatus(QCoreApplication::translate("efoto-core", "Done"));
   dui->progressBar->setValue(0);
   grid->getMinMax(min, max);
   dui->setAutoExtInfo(seeds.size(), pairs.size(), Zi, Zf);
@@ -648,7 +651,7 @@ int DEMManager::extractDEM(int option, bool clearMList) {
   double Xi, Yi, Zi, Xf, Yf, Zf;
   pairs.XYZboundingBox(Xi, Yi, Xf, Yf, Zi, Zf);
   updateBoundingBox(Xi, Yi, Xf, Yf);
-  dui->setStatus((char *)"Done");
+  dui->setStatus(QCoreApplication::translate("efoto-core", "Done"));
   dui->progressBar->setValue(0);
   dui->setAutoExtInfo(seeds.size(), pairs.size(), Zi, Zf);
   dui->setBoundingBox(bb_Xi, bb_Yi, bb_Xf, bb_Yf);
@@ -674,7 +677,7 @@ int DEMManager::extractDEM(int option, bool clearMList) {
     dui->setMathcingHistogram(hist);
     dem_unsaved = true;
   } else {
-    dui->showErrorMessage("Could not find any pair");
+    dui->showErrorMessage(QCoreApplication::translate("efoto-core", "Could not find any pair"));
     return 0;
   }
 
@@ -700,17 +703,15 @@ void DEMManager::extractDEMPair(int pair) {
   // Load images
   Matrix img1, img2;
   DEMUserInterface_Qt *dui = (DEMUserInterface_Qt *)myInterface;
-  dui->setStatus((char *)"Loading left image ...");
+  dui->setStatus(QCoreApplication::translate("efoto-core", "Loading left image ..."));
   std::string filename = getImage(left_id)->getAbsoluteFilePath();
   dui->loadImage(img1, (char *)filename.c_str(), downsample);
-  dui->setStatus((char *)"Loading right image ...");
+  dui->setStatus(QCoreApplication::translate("efoto-core", "Loading right image ..."));
   filename = getImage(right_id)->getAbsoluteFilePath();
   dui->loadImage(img2, (char *)filename.c_str(), downsample);
 
   // Start matching
-  std::stringstream txt;
-  txt << "Matching pair " << left_id << " and " << right_id;
-  dui->setStatus((char *)txt.str().c_str());
+  dui->setStatus(QCoreApplication::translate("efoto-core", "Matching pair %1 and %2").arg(left_id).arg(right_id));
   dui->setProgress(0);
 
   double corr_th = lsm_th, std = lsm_std;
