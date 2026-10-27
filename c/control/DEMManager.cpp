@@ -700,12 +700,10 @@ void DEMManager::extractDEMPair(int pair) {
   Matrix img1, img2;
   DEMUserInterface_Qt *dui = (DEMUserInterface_Qt *)myInterface;
   dui->setStatus((char *)"Loading left image ...");
-  std::string filename =
-      getImage(left_id)->getFilepath() + "/" + getImage(left_id)->getFilename();
+  std::string filename = getImage(left_id)->getAbsoluteFilePath();
   dui->loadImage(img1, (char *)filename.c_str(), downsample);
   dui->setStatus((char *)"Loading right image ...");
-  filename = getImage(right_id)->getFilepath() + "/" +
-             getImage(right_id)->getFilename();
+  filename = getImage(right_id)->getAbsoluteFilePath();
   dui->loadImage(img2, (char *)filename.c_str(), downsample);
 
   // Start matching

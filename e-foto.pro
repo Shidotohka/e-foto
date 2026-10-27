@@ -46,6 +46,7 @@ HEADERS += c/control/DEMManager.h \
            c/infrastructure/ETreeModel.h \
            c/infrastructure/GeoSystem.h \
            c/infrastructure/Matrix.h \
+           c/infrastructure/PathUtils.h \
            c/infrastructure/PositionMatrix.h \
            c/infrastructure/ProgressPublisher.h \
            c/infrastructure/RectSupport.h \
@@ -192,6 +193,7 @@ SOURCES += c/control/DEMManager.cpp \
            c/infrastructure/ETreeModel.cpp \
            c/infrastructure/GeoSystem.cpp \
            c/infrastructure/Matrix.cpp \
+           c/infrastructure/PathUtils.cpp \
            c/infrastructure/PositionMatrix.cpp \
            c/infrastructure/ProgressPublisher.cpp \
            c/infrastructure/RectSupport.cpp \

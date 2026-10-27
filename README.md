@@ -44,6 +44,31 @@ ninja
 1. Run e-foto
     > ./build/bin/e-foto
     
+## File path handling
+All paths exchanged inside the software (project XML, forms, manager interfaces)
+are **UTF-8** `std::string` values; `c/infrastructure/PathUtils` is the only
+place where they are converted to the operating system representation.
+
+* A `<filePath>` stored in a `.epp` file is relative to the **project file
+  directory**, never to the process working directory, so a project can be
+  opened from anywhere (including by double clicking / dragging the file).
+* When an image lives on another drive or volume than the project, a relative
+  path cannot express it, so an absolute path is stored instead.
+* Images that were moved together with the project are searched inside the
+  project folder when the project is opened, and the stored paths are updated.
+* Non ASCII characters (Chinese, accented), spaces, XML special characters,
+  and paths longer than `MAX_PATH` are supported. On Windows the extended
+  length prefix is applied automatically and `efoto.manifest` declares the
+  process as `longPathAware`.
+
+The path layer has standalone regression tests that do not need Qt or GDAL:
+
+```bash
+cmake -G Ninja -DEFOTO_BUILD_TESTS=ON ..
+ninja pathutils_test project_path_test
+ctest --output-on-failure
+```
+
 ## Contribution Guidelines
 * Fork this repository
 * Clone your forked repository

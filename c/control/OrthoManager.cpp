@@ -200,7 +200,7 @@ void OrthoManager::runAllOrthoTogether() {
     // Load image as matrix
     strimg = Conversion::intToString(curr_image + 1);
     oui->setCurrentWork("Loading image " + strimg);
-    filename = img->getFilepath() + "/" + img->getFilename();
+    filename = img->getAbsoluteFilePath();
     oui->loadImage(img_m, (char *)filename.c_str(), 1.0);
 
     //
@@ -322,7 +322,7 @@ void OrthoManager::runOrthoIndividual(int image) {
   // Load image as matrix
   //
   oui->setCurrentWork("Loading image " + strimg);
-  std::string filename = img->getFilepath() + "/" + img->getFilename();
+  std::string filename = img->getAbsoluteFilePath();
   Matrix img_matrix;
   oui->loadImage(img_matrix, (char *)filename.c_str(), 1.0);
 

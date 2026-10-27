@@ -1288,10 +1288,8 @@ void SeedEditorUserInterface_Qt::updateData(/*int i*/) {
   //
   // Update Images
   //
-  std::string left_file = listAllImages.at(left_id - 1)->getFilepath() + '/' +
-                          listAllImages.at(left_id - 1)->getFilename();
-  std::string right_file = listAllImages.at(right_id - 1)->getFilepath() + '/' +
-                           listAllImages.at(right_id - 1)->getFilename();
+  std::string left_file = listAllImages.at(left_id - 1)->getAbsoluteFilePath();
+  std::string right_file = listAllImages.at(right_id - 1)->getAbsoluteFilePath();
 
   viewer->loadLeftImage(QString::fromStdString(left_file));
   viewer->loadRightImage(QString::fromStdString(right_file));

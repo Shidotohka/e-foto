@@ -294,16 +294,9 @@ bool IOManager::load(std::string path)
 
 std::string IOManager::getImageFile()
 {
-	if (myImage->getFilepath() == ".")
-		return myImage->getFilename();
-	else
-	{
-        std::string result = "";
-		result += myImage->getFilepath();
-		result += "/";
-		result += myImage->getFilename();
-		return result;
-	}
+	// Absolute path, resolved against the project directory: it must not
+	// depend on the working directory nor on the drive the image lives in.
+	return myImage->getAbsoluteFilePath();
 }
 
 int IOManager::getFrameRows()

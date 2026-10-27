@@ -9,6 +9,10 @@
 
 #include "RasterResource.h"
 
+#include "PathUtils.h"
+
+namespace PathUtils = br::uerj::eng::efoto::PathUtils;
+
 RasterResource::RasterResource(QString filepath, bool withSmoothIn,
                                bool withSmoothOut, bool metadataOnly) {
   GDALAllRegister();  // Registrar todos os drivers GDAL
@@ -38,7 +42,7 @@ RasterResource::~RasterResource() {
 void RasterResource::emitLoadError(const QString& filepath) {
   QString message = "Error: The image loading process failed.";
   if (!filepath.isEmpty()) {
-    if (!std::filesystem::exists(filepath.toStdString())) {
+    if (!PathUtils::exists(filepath.toUtf8().data())) {
       message += " File not found!";
     } else {
       message += " Unable to read this file!";
@@ -97,8 +101,10 @@ bool RasterResource::load(QString filepath, bool metadataOnly) {
   _isValid = false;
 
   // Abrir dataset GDAL
-  GDALDataset* srcDataset =
-      (GDALDataset*)GDALOpen(filepath.toUtf8().constData(), GA_ReadOnly);
+  // GDAL expects an UTF-8 path. forFileApi() adds the extended length prefix
+  // when the path exceeds MAX_PATH on Windows.
+  const std::string gdalPath = PathUtils::forFileApi(filepath.toUtf8().data());
+  GDALDataset* srcDataset = (GDALDataset*)GDALOpen(gdalPath.c_str(), GA_ReadOnly);
   if (!srcDataset) {
     emitLoadError(filepath);
     return false;

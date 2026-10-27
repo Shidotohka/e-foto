@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 project(e-foto VERSION 1.0 LANGUAGES C CXX)
 
+# std::filesystem is used (path handling), C++17 is required on every platform.
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 # Config build with commit hash number and date of compilation
 
 ############# Your CONFIGS ####################
@@ -197,6 +202,7 @@ qt_add_executable(e-foto WIN32 MACOSX_BUNDLE
     c/infrastructure/ETreeModel.cpp c/infrastructure/ETreeModel.h
     c/infrastructure/GeoSystem.cpp c/infrastructure/GeoSystem.h
     c/infrastructure/Matrix.cpp c/infrastructure/Matrix.h
+    c/infrastructure/PathUtils.cpp c/infrastructure/PathUtils.h
     c/infrastructure/PositionMatrix.cpp c/infrastructure/PositionMatrix.h
     c/infrastructure/RectSupport.cpp c/infrastructure/RectSupport.h
     c/infrastructure/SparseMatrix.cpp c/infrastructure/SparseMatrix.h
@@ -560,6 +566,32 @@ qt_add_resources(e-foto "shaders"
 )
 
 target_compile_definitions(e-foto PRIVATE ${PLATFORM_DEFINITIONS})
+
+if(WIN32)
+    # Icon and manifest (longPathAware), the same resource file used by qmake.
+    target_sources(e-foto PRIVATE efotoIcon.rc)
+    if(MSVC)
+        # The manifest is embedded by the resource file above; do not let the
+        # linker add a second one.
+        target_link_options(e-foto PRIVATE "/MANIFEST:NO")
+    endif()
+endif()
+
+# PathUtils regression test: it does not need Qt nor GDAL, so it can be built
+# and run on any machine with a C++17 compiler.
+option(EFOTO_BUILD_TESTS "Build the PathUtils unit tests" OFF)
+if(EFOTO_BUILD_TESTS)
+    enable_testing()
+    add_executable(pathutils_test tests/PathUtilsTest.cpp
+        c/infrastructure/PathUtils.cpp)
+    target_include_directories(pathutils_test PRIVATE c/infrastructure)
+    add_test(NAME pathutils COMMAND pathutils_test)
+
+    add_executable(project_path_test tests/ProjectPathTest.cpp
+        c/infrastructure/PathUtils.cpp c/infrastructure/EDom.cpp)
+    target_include_directories(project_path_test PRIVATE c/infrastructure)
+    add_test(NAME project_path COMMAND project_path_test)
+endif()
 
 install(TARGETS e-foto
     BUNDLE DESTINATION .

@@ -323,11 +323,7 @@ void SPManager::computeIntersection(double xl, double yl, double xr, double yr, 
 std::string SPManager::getFullImagePath(int imagekey)
 {
     Image* img = listAllImages.at(imagekey-1);
-    std::string result;
-    result.append(img->getFilepath());
-    result.append("/");
-    result.append(img->getFilename());
-    return result;
+    return img->getAbsoluteFilePath();
 }
 
 /*

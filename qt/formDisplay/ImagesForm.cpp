@@ -18,10 +18,10 @@
 #include "ImagesForm.h"
 
 #include <QPicture>
-#include <filesystem>
 #include <sstream>
 
 #include "EDom.h"
+#include "PathUtils.h"
 namespace br {
 namespace uerj {
 namespace eng {
@@ -44,26 +44,24 @@ void ImagesForm::fillvalues(std::string values) {
 
   std::deque<EDomElement> imaChildren = ede.children();
   for (int i = 0; i < rows; i++) {
-    std::string tableParameter;
-    std::stringstream auxStream;
+    EDomElement image = imaChildren.at(i);
 
-    auxStream
-        << imaChildren.at(i).elementByTagName("filePath").toString().c_str();
-    auxStream << "/";
-    auxStream
-        << imaChildren.at(i).elementByTagName("fileName").toString().c_str();
+    // Resolve <filePath>/<fileName> against the project directory and show the
+    // real location: it does not depend on the working directory, on the drive
+    // the image lives in or on the local code page.
+    const std::string filePath = PathUtils::xmlUnescape(
+        PathUtils::trim(image.elementByTagName("filePath").toString()));
+    const std::string fileName = PathUtils::xmlUnescape(
+        PathUtils::trim(image.elementByTagName("fileName").toString()));
+    const std::string imagePath =
+        PathUtils::resolveImagePath(filePath, fileName);
 
-    tableParameter = auxStream.str();
-
-    std::filesystem::path absolute_path =
-        std::filesystem::absolute(tableParameter);
-
-    QTableWidgetItem *keyItem = new QTableWidgetItem(
-        QString::fromUtf8(imaChildren.at(i).attribute("key").c_str()));
-    QTableWidgetItem *idItem = new QTableWidgetItem(
-        imaChildren.at(i).elementByTagName("imageId").toString().c_str());
+    QTableWidgetItem *keyItem =
+        new QTableWidgetItem(QString::fromStdString(image.attribute("key")));
+    QTableWidgetItem *idItem = new QTableWidgetItem(QString::fromStdString(
+        image.elementByTagName("imageId").toString()));
     QTableWidgetItem *fileItem =
-        new QTableWidgetItem(QString::fromStdString(absolute_path.generic_string()));
+        new QTableWidgetItem(QString::fromStdString(imagePath));
     keyItem->setTextAlignment(Qt::AlignCenter);
     idItem->setTextAlignment(Qt::AlignCenter);
 

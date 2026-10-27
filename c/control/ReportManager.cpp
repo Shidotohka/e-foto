@@ -29,6 +29,7 @@
 #include "Flight.h"
 #include "Image.h"
 #include "InteriorOrientation.h"
+#include "PathUtils.h"
 #include "Point.h"
 #include "ProjectHeader.h"
 #include "ProjectiveRay.h"
@@ -361,8 +362,10 @@ std::string ReportManager::eprImages(QList<QTreeWidgetItem*> treeItems) {
           "<width>" + Conversion::intToString(img->getWidth()) + "</width>\n";
       txt += "<heigth>" + Conversion::intToString(img->getHeight()) +
              "</heigth>\n";
-      txt += "<fileName>" + img->getFilename() + "</fileName>\n";
-      txt += "<filePath>" + img->getFilepath() + "</filePath>\n";
+      txt += "<fileName>" + PathUtils::xmlEscape(img->getFilename()) +
+             "</fileName>\n";
+      txt += "<filePath>" + PathUtils::xmlEscape(img->getFilepath()) +
+             "</filePath>\n";
       txt += "<resolution>" + Conversion::intToString(img->getResolution()) +
              "</resolution>\n";
     }
