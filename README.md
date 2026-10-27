@@ -73,6 +73,19 @@ ninja pathutils_test project_path_test
 ctest --output-on-failure
 ```
 
+## Images list
+
+The `Images` page of the project manager is a list to manage the registered
+images, not a launcher: a single click **selects** a row (the whole row is
+highlighted and the matching node is selected in the project tree), and the
+image form is only opened by a double click (or by pressing Enter, or by
+clicking the image in the project tree). The buttons at the bottom apply to the
+selected image: `New` adds an image and `Delete` removes it after a
+confirmation. Deleting an image also removes the `<imageIO>`, `<imageEO>` and
+`<imageSR>` records that belong to it and the measurements of the points on it,
+so the project never keeps data pointing at an image that does not exist
+anymore.
+
 ## Translations
 
 The interface is translated with the Qt Linguist tool chain. User visible strings

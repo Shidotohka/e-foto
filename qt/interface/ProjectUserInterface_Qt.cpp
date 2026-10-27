@@ -113,6 +113,8 @@ ProjectUserInterface_Qt::ProjectUserInterface_Qt(ProjectManager *manager,
                 SLOT(processTreeClick(QModelIndex)));
   this->connect(&imagesForm, SIGNAL(clicked(int)), this,
                 SLOT(selectImage(int)));
+  this->connect(&imagesForm, SIGNAL(activated(int)), this,
+                SLOT(openImage(int)));
   this->connect(&pointsForm, SIGNAL(clicked(int)), this,
                 SLOT(selectPoint(int)));
   this->connect(imageForm.imageIDLine, SIGNAL(editingFinished()), this,
@@ -1007,7 +1009,7 @@ void ProjectUserInterface_Qt::updateTree() {
       else if (etm->dataAt(i) == "points")
         treeItems.at(i)->setText(0, tr("Points"));
       if (!(etm->dataAt(i) == "projectHeader" || etm->dataAt(i) == "terrain" ||
-            etm->dataAt(i) == "sensors" || etm->dataAt(i) == "flights"))
+            etm->dataAt(i) == "sensors" || etm->dataAt(i) == "flights")) {
         for (int j = 0; j < (int)etm->countGrandchildren(i); j++) {
           if (j < treeItems.at(i)->childCount()) {
             treeItems.at(i)->child(j)->setText(0,
@@ -1017,6 +1019,12 @@ void ProjectUserInterface_Qt::updateTree() {
             leafItem->setText(0, tr(etm->dataAt(i, j).c_str()));
           }
         }
+        // The model is rebuilt on every change, so an item that was removed (a
+        // deleted image, for instance) only disappears from the tree here.
+        while (treeItems.at(i)->childCount() > (int)etm->countGrandchildren(i)) {
+          delete treeItems.at(i)->takeChild(treeItems.at(i)->childCount() - 1);
+        }
+      }
     } else {
       QTreeWidgetItem *rootItem = new QTreeWidgetItem(treeWidget);
       treeItems.push_back(rootItem);
@@ -1058,9 +1066,37 @@ bool ProjectUserInterface_Qt::exec() {
   return true;
 }
 
+void ProjectUserInterface_Qt::syncTreeToImage(int row) {
+  if (row < 0 || treeItems.size() < 5) return;
+  QTreeWidgetItem *imagesItem = treeItems.at(4);
+  if (imagesItem == NULL || row >= imagesItem->childCount()) return;
+  QTreeWidgetItem *imageItem = imagesItem->child(row);
+  if (treeWidget->currentItem() == imageItem) return;
+  treeWidget->setCurrentItem(imageItem);
+  currentIndex = treeWidget->currentIndex();
+}
+
 void ProjectUserInterface_Qt::selectImage(int pos) {
-  treeWidget->setCurrentItem(treeItems.at(4)->child(pos));
-  processTreeClick(treeWidget->currentIndex());
+  // A click on the images table only selects the image: the user may want to
+  // delete it (or just look at it) instead of opening its form. The form is
+  // opened by a double click, see openImage().
+  const int key = imagesForm.keyAtRow(pos);
+  if (key <= 0) {
+    controlButtons.setDeleteEnabled(false);
+    return;
+  }
+  currentItemId = key;
+  syncTreeToImage(pos);
+  controlButtons.setDeleteEnabled(true);
+}
+
+void ProjectUserInterface_Qt::openImage(int pos) {
+  if (addNewState || editState) return;
+  const int key = imagesForm.keyAtRow(pos);
+  if (key <= 0) return;
+  currentItemId = key;
+  syncTreeToImage(pos);
+  viewImage(key);
 }
 
 void ProjectUserInterface_Qt::selectPoint(int pos) {
@@ -1193,6 +1229,10 @@ void ProjectUserInterface_Qt::viewFlight(int id) {
 }
 
 void ProjectUserInterface_Qt::viewImages() {
+  // Keep the selected image across refreshes (new image, delete, return from a
+  // module), so the user does not have to select it again.
+  const int selectedKey = imagesForm.selectedKey();
+
   controlButtons.disconnectAll();
   controlButtons.multiConnect();
   connect((&controlButtons)->newButton, SIGNAL(clicked()), this,
@@ -1201,6 +1241,14 @@ void ProjectUserInterface_Qt::viewImages() {
           SLOT(saveNewImage()));
   connect((&controlButtons)->cancelButton, SIGNAL(clicked()), this,
           SLOT(cancelImages()));
+  // The generic modes hide every button when "Delete" is pressed; here it
+  // deletes the selected image instead, so the confirmation dialog does not
+  // make the toolbar disappear when the user answers "No".
+  disconnect((&controlButtons)->deleteButton, SIGNAL(clicked()),
+             (&controlButtons), SLOT(toInvisibleMode()));
+  connect((&controlButtons)->deleteButton, SIGNAL(clicked()), this,
+          SLOT(deleteImage()));
+  controlButtons.setDeleteEnabled(false);
 
   EDomElement imgs(manager->getXml("images"));
 
@@ -1230,6 +1278,11 @@ void ProjectUserInterface_Qt::viewImages() {
                    imagesForm.imagesTable->rowHeight(0) +
                imagesForm.label->height() + imagesForm.importButton->height();
   imagesForm.setMinimumSize(imagesForm.imagesTable->width(), height);
+
+  const int selectedRow = imagesForm.rowOfKey(selectedKey);
+  imagesForm.setSelectedRow(selectedRow);
+  if (selectedRow >= 0) selectImage(selectedRow);
+
   debuggerTextEdit->clear();
   debuggerTextEdit->setText(
       QString::fromUtf8(imgs.indent('\t').getContent().c_str()));
@@ -1351,6 +1404,9 @@ void ProjectUserInterface_Qt::viewPoints() {
           SLOT(saveNewPoint()));
   connect((&controlButtons)->cancelButton, SIGNAL(clicked()), this,
           SLOT(cancelPoints()));
+  // There is no "delete point" yet (deletePoint is a stub), so the button must
+  // stay disabled here even if the images list left it enabled.
+  controlButtons.setDeleteEnabled(false);
 
   EDomElement node(manager->getXml("points"));
 
@@ -1643,19 +1699,49 @@ void ProjectUserInterface_Qt::deleteSensor() {}
 void ProjectUserInterface_Qt::deletePoint() {}
 
 void ProjectUserInterface_Qt::deleteImage() {
-  QMessageBox::StandardButton reply;
-  reply =
-      QMessageBox::question(this, tr("Delete Image"),
-                            tr("Are you sure you want to delete this image?"),
-                            QMessageBox::Yes | QMessageBox::No);
+  const int deletedKey = currentItemId;
+  const int deletedRow = imagesForm.rowOfKey(deletedKey);
+
+  // Deleting an image also deletes its orientations and the measurements of the
+  // points on it, so say it when there are any.
+  QString question = tr("Are you sure you want to delete this image?");
+  const std::string keyText = Conversion::intToString(deletedKey);
+  const bool hasOrientations =
+      !manager->getXml("imageIO", "image_key", keyText).empty() ||
+      !manager->getXml("imageEO", "image_key", keyText).empty();
+  const bool hasMeasurements =
+      manager->getXml("points").find("image_key=\"" + keyText + "\"") !=
+      std::string::npos;
+  if (hasOrientations || hasMeasurements) {
+    question += "\n\n";
+    question += tr(
+        "Its interior/exterior orientation and the measurements of the points "
+        "on it will be deleted too.");
+  }
+
+  QMessageBox::StandardButton reply = QMessageBox::question(
+      this, tr("Delete Image"), question, QMessageBox::Yes | QMessageBox::No);
   if (reply == QMessageBox::Yes) {
-    manager->removeComponent("Image", currentItemId);
-
-    viewImages();
-
-    actionSave_file->setEnabled(true);
+    // Removes the image and the orientations that belong to it (see
+    // ProjectManager::removeComponent).
+    manager->removeComponent("Image", deletedKey);
 
     updateTree();
+    viewImages();
+
+    // Keep the neighbour of the deleted image selected, so deleting a
+    // sequence of images does not need a new click for each one.
+    const int rows = imagesForm.imagesTable->rowCount();
+    if (rows > 0) {
+      int row = deletedRow < 0 ? 0 : deletedRow;
+      if (row > rows - 1) row = rows - 1;
+      imagesForm.setSelectedRow(row);
+      selectImage(row);
+    } else {
+      controlButtons.setDeleteEnabled(false);
+    }
+
+    actionSave_file->setEnabled(true);
   }
 }
 

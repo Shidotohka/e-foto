@@ -17,6 +17,8 @@
 
 #include "ImagesForm.h"
 
+#include <QAbstractItemView>
+#include <QItemSelectionModel>
 #include <QPicture>
 #include <sstream>
 
@@ -31,10 +33,17 @@ ImagesForm ::ImagesForm(QWidget *parent) : AbstractForm(parent) {
   setupUi(this);
   connect(imagesTable, SIGNAL(cellClicked(int, int)), this,
           SLOT(emitSignal(int)));
+  connect(imagesTable, SIGNAL(cellActivated(int, int)), this,
+          SLOT(emitActivated(int)));
   imagesTable->setColumnHidden(0, true);
   imagesTable->setColumnWidth(1, 80);
   imagesTable->setColumnWidth(2, 30);
   imagesTable->setColumnWidth(3, 30);
+  // A single click selects a whole row (so the row can be deleted from the
+  // project). Opening the image is a separate gesture handled by
+  // cellActivated (double click or Enter), see below.
+  imagesTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+  imagesTable->setSelectionMode(QAbstractItemView::SingleSelection);
 }
 
 void ImagesForm::fillvalues(std::string values) {
@@ -94,6 +103,40 @@ void ImagesForm ::emitSignal(int i) {
   //  Provisóriamente nós enviamos a posição da linha clicada e não a key
   //  efetivamente.
   emit clicked(i);
+}
+
+void ImagesForm ::emitActivated(int i) { emit activated(i); }
+
+int ImagesForm::keyAtRow(int row) const {
+  if (row < 0 || row >= imagesTable->rowCount()) return -1;
+  const QTableWidgetItem *keyItem = imagesTable->item(row, 0);
+  if (keyItem == nullptr) return -1;
+  return keyItem->text().toInt();
+}
+
+int ImagesForm::rowOfKey(int key) const {
+  for (int row = 0; row < imagesTable->rowCount(); row++)
+    if (keyAtRow(row) == key) return row;
+  return -1;
+}
+
+int ImagesForm::selectedRow() const {
+  if (imagesTable->selectionModel() == nullptr) return -1;
+  const QModelIndexList rows = imagesTable->selectionModel()->selectedRows();
+  if (rows.isEmpty()) return -1;
+  return rows.first().row();
+}
+
+int ImagesForm::selectedKey() const { return keyAtRow(selectedRow()); }
+
+void ImagesForm::setSelectedRow(int row) {
+  if (row < 0 || row >= imagesTable->rowCount()) {
+    imagesTable->clearSelection();
+    imagesTable->setCurrentIndex(QModelIndex());
+    return;
+  }
+  imagesTable->selectRow(row);
+  imagesTable->setCurrentCell(row, 1);
 }
 
 bool ImagesForm::isForm(std::string formName) {

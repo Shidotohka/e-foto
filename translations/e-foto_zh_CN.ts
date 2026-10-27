@@ -1383,6 +1383,10 @@ p, li { white-space: pre-wrap; }
         <source>Import Images</source>
         <translation>导入影像</translation>
     </message>
+    <message>
+        <source>Click an image to select it, double-click to open it.</source>
+        <translation>单击选中影像，双击打开影像。</translation>
+    </message>
 </context>
 <context>
     <name>LoadingScreen</name>
@@ -4380,6 +4384,10 @@ try put more Control Points or Photogrammetric(Tie) Points </source>
     <message>
         <source>Are you sure you want to delete this image?</source>
         <translation>确定要删除这幅影像吗？</translation>
+    </message>
+    <message>
+        <source>Its interior/exterior orientation and the measurements of the points on it will be deleted too.</source>
+        <translation>此影像的内定向、外定向，以及各点在此影像上的量测值也会一并删除。</translation>
     </message>
     <message>
         <source> Warning: You have unsaved data</source>

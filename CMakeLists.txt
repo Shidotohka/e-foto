@@ -42,52 +42,7 @@ if(WIN32)
 
         file(MAKE_DIRECTORY "${GDAL_ROOT}/efoto")
 
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${GDAL_ROOT}/apps/gdal/lib/cmake/gdal"
-                "${GDAL_ROOT}/efoto/apps/gdal/lib/cmake/gdal"
-        )
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${GDAL_ROOT}/apps"
-                "${GDAL_ROOT}/efoto/apps/gdal/apps"
-        )
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${GDAL_ROOT}/bin"
-                "${GDAL_ROOT}/efoto/apps/gdal/bin"
-        )
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${GDAL_ROOT}/etc"
-                "${GDAL_ROOT}/efoto/apps/gdal/etc"
-        )
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${GDAL_ROOT}/include"
-                "${GDAL_ROOT}/efoto/apps/gdal/include"
-        )
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${GDAL_ROOT}/lib"
-                "${GDAL_ROOT}/efoto/apps/gdal/lib"
-        )
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${GDAL_ROOT}/share"
-                "${GDAL_ROOT}/efoto/apps/gdal/share"
-        )
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${GDAL_ROOT}/usr"
-                "${GDAL_ROOT}/efoto/apps/gdal/usr"
-        )
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${GDAL_ROOT}/var"
-                "${GDAL_ROOT}/efoto/apps/gdal/var"
-        )
-        set(GDAL_DIR "${GDAL_ROOT}/efoto/apps/gdal/lib/cmake/gdal")
+        
     if(MSVC)
         message(STATUS "Compilador: MSVC (Microsoft Visual Studio)")
         add_compile_definitions(HAVE_STDATOMIC=0)

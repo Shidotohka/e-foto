@@ -380,6 +380,20 @@ bool ProjectManager::removeComponent(std::string type, int id) {
     else if (type == "EO")
       newXml.replaceChildByTagAtt("imageEO", "image_key",
                                   Conversion::intToString(id), "");
+    if (type == "Image") {
+      // The interior/exterior orientations of an image are stored outside
+      // <image>: they have to go away with it, otherwise the project keeps
+      // records of an image that no longer exists. The same applies to the
+      // measurements of each point on that image.
+      newXml.replaceChildByTagAtt("imageIO", "image_key",
+                                  Conversion::intToString(id), "");
+      newXml.replaceChildByTagAtt("imageEO", "image_key",
+                                  Conversion::intToString(id), "");
+      newXml.replaceChildByTagAtt("imageSR", "image_key",
+                                  Conversion::intToString(id), "");
+      newXml.replaceChildByTagAtt("imageCoordinates", "image_key",
+                                  Conversion::intToString(id), "");
+    }
     manager->xmlSetData(newXml.getContent());
 
     if (treeModel != NULL) delete treeModel;
