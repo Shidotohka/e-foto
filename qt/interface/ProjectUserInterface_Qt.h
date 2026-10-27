@@ -86,9 +86,9 @@ class ProjectUserInterface_Qt : public QMainWindow,
   // installed at runtime.
   void changeEvent(QEvent* event) override;
 
-  // Keeps the project tree pointing at the image shown in a row of the
-  // images table, without leaving the table.
-  void syncTreeToImage(int row);
+  // Keeps the project tree pointing at the item shown in a row of a form
+  // table (node 4 is "images", node 5 is "points"), without leaving the table.
+  void syncTreeToChild(int node, int row);
 
  private:
   void setupLanguageMenu();
@@ -153,8 +153,9 @@ class ProjectUserInterface_Qt : public QMainWindow,
 
   virtual void selectImage(int);
   virtual void selectPoint(int);
-  // Opens the image of a row of the images form (double click / Enter).
+  // Opens the item of a row of the images / points form (double click / Enter).
   virtual void openImage(int);
+  virtual void openPoint(int);
   virtual void enableForm();
   virtual void enableExecuteMenu(bool status);
   // Salvando cada view...

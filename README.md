@@ -73,18 +73,22 @@ ninja pathutils_test project_path_test
 ctest --output-on-failure
 ```
 
-## Images list
+## Images and points lists
 
-The `Images` page of the project manager is a list to manage the registered
-images, not a launcher: a single click **selects** a row (the whole row is
-highlighted and the matching node is selected in the project tree), and the
-image form is only opened by a double click (or by pressing Enter, or by
-clicking the image in the project tree). The buttons at the bottom apply to the
-selected image: `New` adds an image and `Delete` removes it after a
-confirmation. Deleting an image also removes the `<imageIO>`, `<imageEO>` and
-`<imageSR>` records that belong to it and the measurements of the points on it,
-so the project never keeps data pointing at an image that does not exist
-anymore.
+The `Images` and `Points` pages of the project manager are lists to manage the
+registered objects, not launchers: a single click **selects** a row (the whole
+row is highlighted and the matching node is selected in the project tree), and
+the item form is only opened by a double click (or by pressing Enter, or by
+clicking the item in the project tree). The buttons at the bottom apply to the
+selected row: `New` adds an item and `Delete` removes it after a confirmation;
+the neighbour row stays selected, so a sequence of items can be deleted without
+clicking again.
+
+Deleting an image also removes the `<imageIO>`, `<imageEO>` and `<imageSR>`
+records that belong to it and the measurements of the points on it. Deleting a
+point removes its `<imageCoordinates>` measurements and its `<pointKey>` entries
+in the phototriangulation and in the spatial resections. The project therefore
+never keeps data pointing at an object that does not exist anymore.
 
 ## Translations
 

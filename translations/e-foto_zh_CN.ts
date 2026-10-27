@@ -2029,6 +2029,10 @@ p, li { white-space: pre-wrap; }
         <source>Import from txt</source>
         <translation>从 txt 导入</translation>
     </message>
+    <message>
+        <source>Click a point to select it, double-click to open it.</source>
+        <translation>单击选中点，双击打开点。</translation>
+    </message>
 </context>
 <context>
     <name>Ponto</name>
@@ -4388,6 +4392,22 @@ try put more Control Points or Photogrammetric(Tie) Points </source>
     <message>
         <source>Its interior/exterior orientation and the measurements of the points on it will be deleted too.</source>
         <translation>此影像的内定向、外定向，以及各点在此影像上的量测值也会一并删除。</translation>
+    </message>
+    <message>
+        <source>Delete Point</source>
+        <translation>删除点</translation>
+    </message>
+    <message>
+        <source>Are you sure you want to delete this point?</source>
+        <translation>确定要删除这个点吗？</translation>
+    </message>
+    <message>
+        <source>Its measurements on the images will be deleted too.</source>
+        <translation>该点在各影像上的量测值也会一并删除。</translation>
+    </message>
+    <message>
+        <source>It will also be removed from the phototriangulation and from the spatial resections that used it.</source>
+        <translation>它也会从使用过它的空中三角测量和空间后方交会中移除。</translation>
     </message>
     <message>
         <source> Warning: You have unsaved data</source>

@@ -371,10 +371,20 @@ bool ProjectManager::removeComponent(std::string type, int id) {
     else if (type == "Image")
       newXml.replaceChildByTagAtt("image", "key", Conversion::intToString(id),
                                   "");
-    else if (type == "Point")
+    else if (type == "Point") {
       newXml.replaceChildByTagAtt("point", "key", Conversion::intToString(id),
                                   "");
-    else if (type == "IO")
+      // The phototriangulation and the spatial resections keep the keys of the
+      // points they used (<usedPoints><pointKey>..</pointKey>): a deleted point
+      // has to disappear from those lists too.
+      std::string data = newXml.getContent();
+      const std::string usedPoint =
+          "<pointKey>" + Conversion::intToString(id) + "</pointKey>";
+      for (std::string::size_type pos = data.find(usedPoint);
+           pos != std::string::npos; pos = data.find(usedPoint, pos))
+        data.erase(pos, usedPoint.length());
+      newXml.setContent(data);
+    } else if (type == "IO")
       newXml.replaceChildByTagAtt("imageIO", "image_key",
                                   Conversion::intToString(id), "");
     else if (type == "EO")

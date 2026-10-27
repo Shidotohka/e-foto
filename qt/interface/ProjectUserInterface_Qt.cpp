@@ -46,6 +46,13 @@ namespace uerj {
 namespace eng {
 namespace efoto {
 
+namespace {
+// Fixed child order of ETreeModel: projectHeader, terrain, sensors, flights,
+// images, points.
+const int ImageTreeNode = 4;
+const int PointTreeNode = 5;
+}  // namespace
+
 ProjectUserInterface_Qt::ProjectUserInterface_Qt(ProjectManager *manager,
                                                  QWidget *parent,
                                                  Qt::WindowFlags fl)
@@ -117,6 +124,8 @@ ProjectUserInterface_Qt::ProjectUserInterface_Qt(ProjectManager *manager,
                 SLOT(openImage(int)));
   this->connect(&pointsForm, SIGNAL(clicked(int)), this,
                 SLOT(selectPoint(int)));
+  this->connect(&pointsForm, SIGNAL(activated(int)), this,
+                SLOT(openPoint(int)));
   this->connect(imageForm.imageIDLine, SIGNAL(editingFinished()), this,
                 SLOT(validatingImage()));
   this->connect(imageForm.resolutionSpin, SIGNAL(editingFinished()), this,
@@ -1066,13 +1075,13 @@ bool ProjectUserInterface_Qt::exec() {
   return true;
 }
 
-void ProjectUserInterface_Qt::syncTreeToImage(int row) {
-  if (row < 0 || treeItems.size() < 5) return;
-  QTreeWidgetItem *imagesItem = treeItems.at(4);
-  if (imagesItem == NULL || row >= imagesItem->childCount()) return;
-  QTreeWidgetItem *imageItem = imagesItem->child(row);
-  if (treeWidget->currentItem() == imageItem) return;
-  treeWidget->setCurrentItem(imageItem);
+void ProjectUserInterface_Qt::syncTreeToChild(int node, int row) {
+  if (node < 0 || row < 0 || treeItems.size() <= node) return;
+  QTreeWidgetItem *parentItem = treeItems.at(node);
+  if (parentItem == NULL || row >= parentItem->childCount()) return;
+  QTreeWidgetItem *childItem = parentItem->child(row);
+  if (treeWidget->currentItem() == childItem) return;
+  treeWidget->setCurrentItem(childItem);
   currentIndex = treeWidget->currentIndex();
 }
 
@@ -1086,7 +1095,7 @@ void ProjectUserInterface_Qt::selectImage(int pos) {
     return;
   }
   currentItemId = key;
-  syncTreeToImage(pos);
+  syncTreeToChild(ImageTreeNode, pos);
   controlButtons.setDeleteEnabled(true);
 }
 
@@ -1095,13 +1104,29 @@ void ProjectUserInterface_Qt::openImage(int pos) {
   const int key = imagesForm.keyAtRow(pos);
   if (key <= 0) return;
   currentItemId = key;
-  syncTreeToImage(pos);
+  syncTreeToChild(ImageTreeNode, pos);
   viewImage(key);
 }
 
 void ProjectUserInterface_Qt::selectPoint(int pos) {
-  treeWidget->setCurrentItem(treeItems.at(5)->child(pos));
-  processTreeClick(treeWidget->currentIndex());
+  // Same behaviour as the images table: a click selects, a double click opens.
+  const int key = pointsForm.keyAtRow(pos);
+  if (key <= 0) {
+    controlButtons.setDeleteEnabled(false);
+    return;
+  }
+  currentItemId = key;
+  syncTreeToChild(PointTreeNode, pos);
+  controlButtons.setDeleteEnabled(true);
+}
+
+void ProjectUserInterface_Qt::openPoint(int pos) {
+  if (addNewState || editState) return;
+  const int key = pointsForm.keyAtRow(pos);
+  if (key <= 0) return;
+  currentItemId = key;
+  syncTreeToChild(PointTreeNode, pos);
+  viewPoint(key);
 }
 
 void ProjectUserInterface_Qt::viewHeader() {
@@ -1396,6 +1421,10 @@ void ProjectUserInterface_Qt::viewImage(int id) {
 }
 
 void ProjectUserInterface_Qt::viewPoints() {
+  // Keep the selected point across refreshes, so the user does not have to
+  // select it again after a new import or a deletion.
+  const int selectedKey = pointsForm.selectedKey();
+
   controlButtons.disconnectAll();
   controlButtons.multiConnect();
   connect((&controlButtons)->newButton, SIGNAL(clicked()), this,
@@ -1404,8 +1433,12 @@ void ProjectUserInterface_Qt::viewPoints() {
           SLOT(saveNewPoint()));
   connect((&controlButtons)->cancelButton, SIGNAL(clicked()), this,
           SLOT(cancelPoints()));
-  // There is no "delete point" yet (deletePoint is a stub), so the button must
-  // stay disabled here even if the images list left it enabled.
+  // As in the images list, "Delete" removes the selected point instead of
+  // hiding the whole button bar (see viewImages).
+  disconnect((&controlButtons)->deleteButton, SIGNAL(clicked()),
+             (&controlButtons), SLOT(toInvisibleMode()));
+  connect((&controlButtons)->deleteButton, SIGNAL(clicked()), this,
+          SLOT(deletePoint()));
   controlButtons.setDeleteEnabled(false);
 
   EDomElement node(manager->getXml("points"));
@@ -1421,6 +1454,11 @@ void ProjectUserInterface_Qt::viewPoints() {
                    pointsForm.pointsTable->rowHeight(0) +
                pointsForm.importButton->height() + pointsForm.label->height();
   pointsForm.setMinimumSize(pointsForm.pointsTable->width(), height);
+
+  const int selectedRow = pointsForm.rowOfKey(selectedKey);
+  pointsForm.setSelectedRow(selectedRow);
+  if (selectedRow >= 0) selectPoint(selectedRow);
+
   debuggerTextEdit->clear();
   debuggerTextEdit->setText(
       QString::fromUtf8(node.indent('\t').getContent().c_str()));
@@ -1696,7 +1734,57 @@ void ProjectUserInterface_Qt::deleteFlight() {}
 
 void ProjectUserInterface_Qt::deleteSensor() {}
 
-void ProjectUserInterface_Qt::deletePoint() {}
+void ProjectUserInterface_Qt::deletePoint() {
+  const int deletedKey = currentItemId;
+  const int deletedRow = pointsForm.rowOfKey(deletedKey);
+  const std::string keyText = Conversion::intToString(deletedKey);
+
+  // A point carries its measurements on the images, and it may be part of the
+  // phototriangulation / spatial resections, so say what else goes away.
+  QString question = tr("Are you sure you want to delete this point?");
+  const std::string pointXml = manager->getXml("point", "key", keyText);
+  const bool hasMeasurements =
+      pointXml.find("<imageCoordinates") != std::string::npos;
+  const std::string usedPoint = "<pointKey>" + keyText + "</pointKey>";
+  const std::string ptXml = manager->getXml("phototriangulation");
+  const std::string srXml = manager->getXml("spatialResections");
+  const bool isUsed = ptXml.find(usedPoint) != std::string::npos ||
+                      srXml.find(usedPoint) != std::string::npos;
+  if (hasMeasurements || isUsed) {
+    question += "\n\n";
+    question += tr("Its measurements on the images will be deleted too.");
+  }
+  if (isUsed) {
+    question += " ";
+    question += tr("It will also be removed from the phototriangulation and "
+                   "from the spatial resections that used it.");
+  }
+
+  QMessageBox::StandardButton reply = QMessageBox::question(
+      this, tr("Delete Point"), question, QMessageBox::Yes | QMessageBox::No);
+  if (reply == QMessageBox::Yes) {
+    // Removes the point, its measurements and the references to it (see
+    // ProjectManager::removeComponent).
+    manager->removeComponent("Point", deletedKey);
+
+    updateTree();
+    viewPoints();
+
+    // Keep the neighbour of the deleted point selected, so deleting a sequence
+    // of points does not need a new click for each one.
+    const int rows = pointsForm.pointsTable->rowCount();
+    if (rows > 0) {
+      int row = deletedRow < 0 ? 0 : deletedRow;
+      if (row > rows - 1) row = rows - 1;
+      pointsForm.setSelectedRow(row);
+      selectPoint(row);
+    } else {
+      controlButtons.setDeleteEnabled(false);
+    }
+
+    actionSave_file->setEnabled(true);
+  }
+}
 
 void ProjectUserInterface_Qt::deleteImage() {
   const int deletedKey = currentItemId;
