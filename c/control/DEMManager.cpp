@@ -29,6 +29,7 @@ DEMManager.cpp
 #include "FrameSensor.h"
 #include "Image.h"
 #include "ImageMatching.h"
+#include "PathUtils.h"
 #include "Point.h"
 #include "ProjectiveRay.h"
 #include "SpatialIntersection.h"
@@ -794,7 +795,8 @@ double DEMManager::calculateDemRes(double ds) {
 void DEMManager::addPairsToXML(std::string filename) {
   std::stringstream add;
   add << "<pairsFilename>";
-  add << filename;
+  add << PathUtils::xmlEscape(PathUtils::relativeOrAbsolute(
+      filename, PathUtils::projectDirectory()));
   add << "</pairsFilename>";
 
   EDomElement newXml(manager->xmlGetData());
@@ -810,7 +812,8 @@ void DEMManager::addPairsToXML(std::string filename) {
 void DEMManager::addSeedsToXML(std::string filename) {
   std::stringstream add;
   add << "<seedsFilename>";
-  add << filename;
+  add << PathUtils::xmlEscape(PathUtils::relativeOrAbsolute(
+      filename, PathUtils::projectDirectory()));
   add << "</seedsFilename>";
 
   EDomElement newXml(manager->xmlGetData());
@@ -826,7 +829,8 @@ void DEMManager::addSeedsToXML(std::string filename) {
 void DEMManager::addDEMToXML(std::string filename) {
   std::stringstream add;
   add << "<dsmFilename>";
-  add << filename;
+  add << PathUtils::xmlEscape(PathUtils::relativeOrAbsolute(
+      filename, PathUtils::projectDirectory()));
   add << "</dsmFilename>";
 
   EDomElement newXml(manager->xmlGetData());

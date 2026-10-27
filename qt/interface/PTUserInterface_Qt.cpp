@@ -30,6 +30,7 @@
 #include "ImageViewers.h"
 #include "LoadingScreen.h"
 #include "PTManager.h"
+#include "PathUtils.h"
 #include "SingleDisplay.h"
 #include "SingleTools.h"
 #include "WindowsSelectPage.h"
@@ -1670,7 +1671,7 @@ void PTUserInterface_Qt::undoMark() {
 // Created by Marcelo Teixiera Silveira
 int PTUserInterface_Qt::saveFtReport(char *filename) {
   // Open file to save
-  std::ofstream arq(filename);
+  PathUtils::OutputFileStream arq(filename);
   if (arq.fail()) {
     printf("Problems while saving ...\n");
     return 0;

@@ -21,8 +21,12 @@ PathUtils.h
 #ifndef EFOTO_PATHUTILS_H
 #define EFOTO_PATHUTILS_H
 
+#include <cstdio>
 #include <filesystem>
+#include <istream>
 #include <map>
+#include <ostream>
+#include <streambuf>
 #include <string>
 
 namespace br {
@@ -221,6 +225,64 @@ bool writeFile(const std::string& utf8Path, const std::string& contents);
  * instance).
  */
 std::string forFileApi(const std::string& utf8Path);
+
+/**
+ * \brief Opens a file with a UTF-8 path, using the wide API on Windows.
+ *
+ * This is the replacement for fopen()/std::fopen() on any path that may come
+ * from the user: those interpret the bytes with the local code page, so a
+ * directory named "中文目录" cannot be opened from a UTF-8 string.
+ *
+ * \param mode Standard fopen() mode ("wb", "r", ...).
+ * \return The stream, or nullptr on failure.
+ */
+std::FILE* openFile(const std::string& utf8Path, const char* mode);
+
+/**
+ * \brief std::ofstream replacement that opens files through openFile().
+ *
+ * It behaves like std::ofstream for the operations e-foto uses (the <<
+ * operators, is_open(), fail(), precision(), close()), writing to a UTF-8
+ * path of any length. On failure is_open() and fail() report the error
+ * instead of silently dropping the output.
+ */
+class OutputFileStream : public std::ostream {
+ public:
+  explicit OutputFileStream(const std::string& utf8Path, bool binary = false);
+  ~OutputFileStream() override;
+
+  bool isOpen() const;
+  /// Alias with the std::ofstream name, for drop in replacements.
+  bool is_open() const { return isOpen(); }
+  /// Flushes and closes the file (safe to call twice).
+  void close();
+
+ private:
+  class Buffer;
+  Buffer* buffer_;
+};
+
+/**
+ * \brief std::ifstream replacement that opens files through openFile().
+ *
+ * A file saved under a path that std::ofstream cannot open is not very
+ * useful, so the readers use the same conversions as the writers.
+ */
+class InputFileStream : public std::istream {
+ public:
+  explicit InputFileStream(const std::string& utf8Path, bool binary = false);
+  ~InputFileStream() override;
+
+  bool isOpen() const;
+  /// Alias with the std::ifstream name, for drop in replacements.
+  bool is_open() const { return isOpen(); }
+  /// Closes the file (safe to call twice).
+  void close();
+
+ private:
+  class Buffer;
+  Buffer* buffer_;
+};
 
 }  // namespace PathUtils
 }  // namespace efoto

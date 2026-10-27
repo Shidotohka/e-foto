@@ -60,6 +60,10 @@ place where they are converted to the operating system representation.
   and paths longer than `MAX_PATH` are supported. On Windows the extended
   length prefix is applied automatically and `efoto.manifest` declares the
   process as `longPathAware`.
+* Saving works the same way: exports, reports and the binary DSM/ortho-image
+  writers use `PathUtils::OutputFileStream` / `PathUtils::openFile` instead of
+  `std::ofstream` / `fopen`, which interpret the bytes with the local code page
+  and silently fail on such names.
 
 The path layer has standalone regression tests that do not need Qt or GDAL:
 

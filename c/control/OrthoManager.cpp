@@ -31,6 +31,7 @@ OrthoManager.cpp
 #include "OrthoUserInterface.h"
 #include "OrthoUserInterface_Qt.h"
 #include "Orthorectification.h"
+#include "PathUtils.h"
 #include "Point.h"
 #include "ProjectiveRay.h"
 #include "Terrain.h"
@@ -537,7 +538,8 @@ void OrthoManager::setProgress(int progress) {
 void OrthoManager::addOrthoToXML(std::string filename) {
   std::stringstream add;
   add << "<eoiFilename>";
-  add << filename;
+  add << PathUtils::xmlEscape(PathUtils::relativeOrAbsolute(
+      filename, PathUtils::projectDirectory()));
   add << "</eoiFilename>";
 
   EDomElement newXml(manager->xmlGetData());

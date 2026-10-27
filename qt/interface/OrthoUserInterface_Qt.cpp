@@ -34,6 +34,7 @@
 #include "ImageViewers.h"
 #include "OrthoManager.h"
 #include "Orthorectification.h"
+#include "PathUtils.h"
 #include "SingleDisplay.h"
 #include "SingleTools.h"
 
@@ -643,9 +644,14 @@ void OrthoQualityUserInterface_Qt::saveQuality() {
     int i = filename.lastIndexOf("/");
     lastDir = filename.left(i);
 
-    std::ofstream outfile(filename.toUtf8().data());
+    PathUtils::OutputFileStream outfile(filename.toStdString());
 
-    if (outfile.fail()) return;
+    if (!outfile.isOpen()) {
+      QMessageBox::critical(
+          this, tr("Save error"),
+          tr("It was not possible to create the file:\n%1").arg(filename));
+      return;
+    }
 
     outfile << std::setprecision(5);
 
@@ -770,7 +776,7 @@ int OrthoQualityUserInterface_Qt::loadPointsFromTxt(char *filename) {
   // X2 Y2 Z2
   // ...
 
-  std::ifstream arq(filename);
+  PathUtils::InputFileStream arq(filename);
 
   if (arq.fail()) return 0;
 
@@ -816,7 +822,7 @@ int OrthoQualityUserInterface_Qt::loadPointsFromTxt(char *filename) {
 int OrthoQualityUserInterface_Qt::loadPointsFromQuality(char *filename) {
   // Open ortho-imae quality file
 
-  std::ifstream arq(filename);
+  PathUtils::InputFileStream arq(filename);
 
   if (arq.fail()) return 0;
 

@@ -31,6 +31,7 @@ SPManager.cpp
 #include "Terrain.h"
 #include "Image.h"
 #include "Flight.h"
+#include "PathUtils.h"
 
 #include <sstream>
 
@@ -693,7 +694,7 @@ void SPManager::addGeometryToXML(std::string filename)
 {
     std::stringstream add;
     add << "<featuresFilename>";
-    add << filename;
+    add << PathUtils::xmlEscape(PathUtils::relativeOrAbsolute(filename, PathUtils::projectDirectory()));
     add << "</featuresFilename>";
 
     EDomElement newXml(manager->xmlGetData());

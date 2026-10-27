@@ -28,6 +28,7 @@
 #include "Image.h"
 #include "ImageViewers.h"
 #include "LoadingScreen.h"
+#include "PathUtils.h"
 #include "SingleDisplay.h"
 
 namespace br {
@@ -407,7 +408,7 @@ void DEMUserInterface_Qt::onDemGridSaveClicked() {
     lastDir = filename.left(i);
 
     // Save DEM
-    manager->saveDemGrid((char *)filename.toLocal8Bit().constData(),
+    manager->saveDemGrid((char *)filename.toUtf8().constData(),
                          comboBox9->currentIndex());
   }
 }
@@ -437,7 +438,7 @@ void DEMUserInterface_Qt::onDemLoadClicked() {
   lastDir = filename.left(i);
 
   // Load DEM
-  if (!manager->loadDem((char *)filename.toLocal8Bit().constData(),
+  if (!manager->loadDem((char *)filename.toUtf8().constData(),
                         comboBox8->currentIndex())) {
     QMessageBox::critical(this, "Load error",
                           "Error while loading file. Check if file format "
@@ -465,7 +466,7 @@ void DEMUserInterface_Qt::onDemGridLoadClicked() {
   lastDir = filename.left(i);
 
   // Load DEM Grid
-  if (!manager->loadDemGrid((char *)filename.toLocal8Bit().constData(),
+  if (!manager->loadDemGrid((char *)filename.toUtf8().constData(),
                             comboBox9->currentIndex())) {
     QMessageBox::critical(this, "Load error",
                           "Error while loading file. Check if file format "
@@ -633,7 +634,7 @@ void DEMUserInterface_Qt::onLoadPtsButtonClicked() {
   lastDir = filename.left(i);
 
   textEdit->setText(QString::fromStdString(manager->getDemQuality(
-      (char *)filename.toLocal8Bit().constData(), comboBox->currentIndex())));
+      (char *)filename.toUtf8().constData(), comboBox->currentIndex())));
 }
 
 void DEMUserInterface_Qt::onSavePtsButtonClicked() {
@@ -655,10 +656,17 @@ void DEMUserInterface_Qt::onSavePtsButtonClicked() {
     int i = filename.lastIndexOf("/");
     lastDir = filename.left(i);
 
-    std::ofstream outfile(filename.toLocal8Bit().constData());
+    // The report is text: open it through PathUtils (the wide API on
+    // Windows) and keep its contents in UTF-8, never in the local code page.
+    PathUtils::OutputFileStream outfile(filename.toStdString());
+    if (!outfile.isOpen()) {
+      QMessageBox::critical(
+          this, tr("Save error"),
+          tr("It was not possible to create the file:\n%1").arg(filename));
+      return;
+    }
 
-    // outfile << textEdit->toPlainText().toStdString();
-    outfile << textEdit->toPlainText().toLocal8Bit().constData();
+    outfile << textEdit->toPlainText().toStdString();
 
     outfile.close();
   }
@@ -768,7 +776,7 @@ void DEMUserInterface_Qt::onStereoplotterClicked() {
   int i = filename.lastIndexOf("/");
   lastDir = filename.left(i);
 
-  if (manager->loadDemFeature((char *)filename.toLocal8Bit().constData()))
+  if (manager->loadDemFeature((char *)filename.toUtf8().constData()))
     enableAfterDEM(2);
 }
 
@@ -1104,10 +1112,10 @@ void SeedEditorUserInterface_Qt::saveSeeds() {
     lastDir = filename.left(i);
 
     // Save seeds
-    seeds.save((char *)filename.toLocal8Bit().constData(), 0);
+    seeds.save((char *)filename.toUtf8().constData(), 0);
     // Expanção do XML
     // manager->addSeedsToXML(filename.toStdString());
-    manager->addSeedsToXML(filename.toLocal8Bit().constData());
+    manager->addSeedsToXML(filename.toUtf8().constData());
   }
 }
 void SeedEditorUserInterface_Qt::loadSeeds() {
@@ -1122,7 +1130,7 @@ void SeedEditorUserInterface_Qt::loadSeeds() {
   lastDir = filename.left(i);
 
   // Load seeds
-  seeds.load((char *)filename.toLocal8Bit().constData(), 0);
+  seeds.load((char *)filename.toUtf8().constData(), 0);
 
   // Update data
   updateData(/*comboBox1->currentIndex()*/);

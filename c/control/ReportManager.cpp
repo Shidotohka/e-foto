@@ -1037,7 +1037,7 @@ std::string ReportManager::eprOrthorectification() {
 bool ReportManager::makeFile(std::string filename, int idExt,
                              QList<QTreeWidgetItem*> treeItems) {
   std::stringstream out;
-  std::ofstream myFile(filename.c_str());
+  PathUtils::OutputFileStream myFile(filename);
   if (myFile.is_open()) {
     int numChild = treeItems.count();
     out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
@@ -1627,7 +1627,7 @@ bool ReportManager::makeXslt(int idExt, std::string path) {
     outxsl << "    End of E-Foto Photogrammetric Report\n";
     outxsl << "</xsl:template>\n";
     outxsl << "</xsl:stylesheet>\n";
-    std::ofstream myXsltFile(xsltransformation.c_str());
+    PathUtils::OutputFileStream myXsltFile(xsltransformation);
     myXsltFile << outxsl.str();
     myXsltFile.close();
   } else {
@@ -2621,7 +2621,7 @@ bool ReportManager::makeXslt(int idExt, std::string path) {
     outxsl << "</html>\n";
     outxsl << "</xsl:template>\n";
     outxsl << "</xsl:stylesheet>\n";
-    std::ofstream myXsltFile(xsltransformation.c_str());
+    PathUtils::OutputFileStream myXsltFile(xsltransformation);
     EDomElement xsl(outxsl.str());
     myXsltFile << xsl.removeBlankLines(true).indent('\t').getContent();
     myXsltFile.close();
@@ -2880,7 +2880,7 @@ bool ReportManager::makeCss(std::string path) {
          "    height:75px;"
          "}";
 
-  std::ofstream cssFile(filename.c_str());
+  PathUtils::OutputFileStream cssFile(filename);
   cssFile << content.str();
   cssFile.close();
 

@@ -22,6 +22,7 @@ PathUtils.cpp
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <cstdlib>
 #include <cwctype>
 #include <deque>
@@ -671,6 +672,162 @@ bool writeFile(const std::string& utf8Path, const std::string& contents) {
 std::string forFileApi(const std::string& utf8Path) {
   if (utf8Path.empty()) return std::string();
   return fromPathNative(apiPath(toPath(utf8Path)));
+}
+
+// ---------------------------------------------------------------------
+// UTF-8 safe file streams
+// ---------------------------------------------------------------------
+
+std::FILE* openFile(const std::string& utf8Path, const char* mode) {
+  if (utf8Path.empty() || mode == nullptr || mode[0] == '\0') return nullptr;
+
+#ifdef _WIN32
+  // fopen()/_wfopen() are the only two ways to ask the CRT for a handle; the
+  // wide one is the only one that does not go through the local code page.
+  const std::filesystem::path path = apiPath(toPath(utf8Path));
+  std::wstring wideMode;
+  for (const char* c = mode; *c != '\0'; c++) {
+    wideMode.push_back(static_cast<wchar_t>(*c));
+  }
+  return ::_wfopen(path.native().c_str(), wideMode.c_str());
+#else
+  return std::fopen(utf8Path.c_str(), mode);
+#endif
+}
+
+/**
+ * Shared streambuf: writes go straight to the FILE, reads are buffered.
+ * Keeping it on the heap lets the public classes stay copy-free and keeps
+ * stdio.h out of PathUtils.h.
+ */
+class OutputFileStream::Buffer : public std::streambuf {
+ public:
+  Buffer() = default;
+  ~Buffer() override { close(); }
+
+  void attach(std::FILE* file) { file_ = file; }
+  bool isOpen() const { return file_ != nullptr; }
+
+  void close() {
+    if (file_ == nullptr) return;
+    std::fflush(file_);
+    std::fclose(file_);
+    file_ = nullptr;
+  }
+
+ protected:
+  int_type overflow(int_type ch) override {
+    if (file_ == nullptr) return traits_type::eof();
+    if (!traits_type::eq_int_type(ch, traits_type::eof())) {
+      if (std::fputc(traits_type::to_char_type(ch), file_) == EOF) {
+        return traits_type::eof();
+      }
+    }
+    return traits_type::not_eof(ch);
+  }
+
+  std::streamsize xsputn(const char* data, std::streamsize count) override {
+    if (file_ == nullptr || count <= 0) return 0;
+    return static_cast<std::streamsize>(
+        std::fwrite(data, 1, static_cast<size_t>(count), file_));
+  }
+
+  int sync() override {
+    if (file_ == nullptr) return -1;
+    return std::fflush(file_) == 0 ? 0 : -1;
+  }
+
+ private:
+  std::FILE* file_ = nullptr;
+};
+
+OutputFileStream::OutputFileStream(const std::string& utf8Path, bool binary)
+    : std::ostream(nullptr), buffer_(new Buffer()) {
+  std::FILE* file = openFile(utf8Path, binary ? "wb" : "w");
+  buffer_->attach(file);
+  init(buffer_);
+  // Same contract as std::ofstream: the caller checks is_open() or fail().
+  if (file == nullptr) setstate(std::ios::failbit);
+}
+
+OutputFileStream::~OutputFileStream() { delete buffer_; }
+
+bool OutputFileStream::isOpen() const {
+  return buffer_ != nullptr && buffer_->isOpen();
+}
+
+void OutputFileStream::close() {
+  if (buffer_ == nullptr || !buffer_->isOpen()) return;
+  if (good()) flush();
+  buffer_->close();
+}
+
+class InputFileStream::Buffer : public std::streambuf {
+ public:
+  Buffer() = default;
+  ~Buffer() override { close(); }
+
+  void attach(std::FILE* file) {
+    file_ = file;
+    setg(data_, data_, data_);
+  }
+  bool isOpen() const { return file_ != nullptr; }
+
+  void close() {
+    if (file_ == nullptr) return;
+    std::fclose(file_);
+    file_ = nullptr;
+  }
+
+ protected:
+  int_type underflow() override {
+    if (file_ == nullptr) return traits_type::eof();
+    if (gptr() < egptr()) return traits_type::to_int_type(*gptr());
+
+    const size_t read = std::fread(data_, 1, sizeof(data_), file_);
+    if (read == 0) return traits_type::eof();
+    setg(data_, data_, data_ + read);
+    return traits_type::to_int_type(*gptr());
+  }
+
+  std::streamsize xsgetn(char* data, std::streamsize count) override {
+    if (file_ == nullptr || count <= 0) return 0;
+
+    std::streamsize remaining = count;
+    while (remaining > 0 && gptr() < egptr()) {
+      *data++ = *gptr();
+      gbump(1);
+      remaining--;
+    }
+    if (remaining > 0) {
+      const size_t read =
+          std::fread(data, 1, static_cast<size_t>(remaining), file_);
+      remaining -= static_cast<std::streamsize>(read);
+    }
+    return count - remaining;
+  }
+
+ private:
+  std::FILE* file_ = nullptr;
+  char data_[8192];
+};
+
+InputFileStream::InputFileStream(const std::string& utf8Path, bool binary)
+    : std::istream(nullptr), buffer_(new Buffer()) {
+  std::FILE* file = openFile(utf8Path, binary ? "rb" : "r");
+  buffer_->attach(file);
+  init(buffer_);
+  if (file == nullptr) setstate(std::ios::failbit);
+}
+
+InputFileStream::~InputFileStream() { delete buffer_; }
+
+bool InputFileStream::isOpen() const {
+  return buffer_ != nullptr && buffer_->isOpen();
+}
+
+void InputFileStream::close() {
+  if (buffer_ != nullptr) buffer_->close();
 }
 
 }  // namespace PathUtils

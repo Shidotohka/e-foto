@@ -150,6 +150,82 @@ void writeText(const std::string& path, const std::string& text) {
   check(exists(path), "exists after writeFile " + path);
 }
 
+// The exporters, the reports and the DEM/ortho writers used std::ofstream and
+// fopen() with a UTF-8 std::string. Those do not accept non ASCII paths on
+// Windows, so the output silently disappeared; these are the replacements.
+void testFileStreams(const std::string& root) {
+  using br::uerj::eng::efoto::PathUtils::InputFileStream;
+  using br::uerj::eng::efoto::PathUtils::openFile;
+  using br::uerj::eng::efoto::PathUtils::OutputFileStream;
+
+  const std::string directory = makeDirectory(root, utf8(L"导出报告"));
+
+  // Text output, exactly what the report/feature/point exporters do.
+  const std::string report = join(directory, utf8(L"摄影测量报告.txt"));
+  {
+    OutputFileStream out(report);
+    check(out.isOpen(), "OutputFileStream opens a non ASCII path");
+    out << "line one\n" << 42 << " " << 3.5 << "\n";
+    out.close();
+  }
+  std::string contents;
+  check(readFile(report, contents), "OutputFileStream creates the file");
+  check(contents.find("line one") != std::string::npos,
+        "OutputFileStream writes the text", contents);
+  check(contents.find("42 3.5") != std::string::npos,
+        "OutputFileStream writes formatted values", contents);
+
+  // Binary output: the bytes must be written verbatim.
+  {
+    OutputFileStream out(report, true);
+    out << "raw\n";
+  }
+  check(readFile(report, contents), "OutputFileStream binary reopens");
+  checkEqual(contents, "raw\n", "binary stream writes exact bytes");
+
+  {
+    InputFileStream in(report, true);
+    check(in.isOpen(), "InputFileStream opens a non ASCII path");
+    std::string firstLine;
+    std::getline(in, firstLine);
+    checkEqual(firstLine, "raw", "InputFileStream reads the text");
+  }
+
+  // Binary round trip, the way the DSM and the ortho-image are stored.
+  const std::string grid = join(directory, "dem.dsm");
+  {
+    OutputFileStream out(grid, true);
+    const double header[3] = {1.5, -2.25, 0.001};
+    out.write(reinterpret_cast<const char*>(header), sizeof(header));
+  }
+  {
+    InputFileStream in(grid, true);
+    double back[3] = {0.0, 0.0, 0.0};
+    in.read(reinterpret_cast<char*>(back), sizeof(back));
+    check(back[0] == 1.5 && back[1] == -2.25 && back[2] == 0.001,
+          "binary round trip through a non ASCII directory");
+  }
+
+  // A failure has to be visible: the old code checked nothing on the fopen()
+  // paths and crashed on the binary writers.
+  const std::string missing = join(directory, "no_such_folder/report.txt");
+  {
+    OutputFileStream out(missing);
+    check(!out.isOpen(), "OutputFileStream reports a missing directory");
+    check(out.fail(), "OutputFileStream sets failbit when it cannot open");
+  }
+  {
+    InputFileStream in(missing);
+    check(!in.isOpen(), "InputFileStream reports a missing directory");
+    check(in.fail(), "InputFileStream sets failbit when it cannot open");
+  }
+  check(openFile(missing, "wb") == nullptr,
+        "openFile returns NULL for a missing directory");
+  std::FILE* readable = openFile(report, "rb");
+  check(readable != nullptr, "openFile opens an existing file");
+  if (readable != nullptr) std::fclose(readable);
+}
+
 void checkExistsThroughApi(const std::string& path);
 
 void testChineseAndSpecialCharacters(const std::string& root) {
@@ -287,6 +363,16 @@ void testLongPath(const std::string& root) {
              image, "indexFilesByName long path");
   checkEqual(findFileByName(deepest, "photo_0123456789_0123456789.tif"), image,
              "findFileByName long path");
+
+  // The exporters reach the same path through the stream wrappers.
+  {
+    br::uerj::eng::efoto::PathUtils::OutputFileStream out(image, true);
+    check(out.isOpen(), "OutputFileStream long path");
+    out << "LONG2";
+  }
+  std::string streamed;
+  check(readFile(image, streamed), "readFile after OutputFileStream");
+  checkEqual(streamed, "LONG2", "OutputFileStream long path content");
 }
 
 void checkExistsThroughApi(const std::string& path) {
@@ -387,6 +473,8 @@ int main() {
   testFindFileByName(root);
   std::printf("-- legacy code page\n");
   testLegacyCodePage(root);
+  std::printf("-- file streams\n");
+  testFileStreams(root);
 
   removeTree(root);
 
